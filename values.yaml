@@ -1,0 +1,40 @@
+name: cs2-server
+
+image: steamcmd/steamcmd:latest
+ipaddress: "loadBalancer IP HERE"
+port: 27015
+pvc:
+  name: cs2-data
+  storageClass: nfs-client
+  size: 60Gi
+configMap:
+  name: cs2-configuration
+
+secret:
+  STEAMCMDDIR: "/home/steam/cs2-ds/"
+  STEAMAPPID: 730
+  SRCDS_TOKEN: "TOKEN HERE" # Game Server Token from https://steamcommunity.com/dev/managegameservers
+  SERVER_HOSTNAME: "Kubernetes Counter-strike 2 Dedicated server"
+  ALIAS: competitive #Competitive, Wingman, Deathmatch, Casual, Custom
+  MAP: de_inferno
+  MAXPLAYERS: 10
+  #EXTRAARG: #Extra Launch options
+
+files:
+  server.cfg: |
+    rcon_password ""
+  entrypoint.sh: |
+    #!/bin/bash
+    # check var SRCDS_TOKEN
+    if [[ -z "$SRCDS_TOKEN" ]]
+    then
+      echo "need to get SRCDS_TOKEN | https://steamcommunity.com/dev/managegameservers"
+      exit 1
+    fi
+        
+    # enter folder
+    mkdir -p ~/.steam/sdk64
+    #ln -s /home/steam/steamcmd/linux64/steamclient.so /home/steam/.steam/sdk64/
+    cd /home/steam/cs2-ds/
+    # RUN CS2
+    /home/steam/cs2-ds/game/bin/linuxsteamrt64/cs2 -dedicated -usercon -maxplayers $MAXPLAYERS +game_alias $ALIAS +map $MAP +hostname $SERVER_HOSTNAME +sv_setsteamaccount $SRCDS_TOKEN 

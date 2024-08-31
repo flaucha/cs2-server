@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.name }}
+  name: {{ .Values.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:   
+      initContainers:
+      - name: install-update
+        image: steamcmd/steamcmd:latest
+        command: [ "bash", "-c", "/usr/bin/steamcmd +force_install_dir /home/steam/cs2-ds +login anonymous +app_update 730 +quit" ]
+        envFrom:
+        - secretRef:
+            name: secret
+        volumeMounts:
+          - name: {{ .Values.pvc.name }}
+            mountPath: /home/steam/cs2-ds/
+      containers:
+      - image: {{ .Values.image }}
+        command: ["/home/steam/entrypoint.sh"]
+        name: {{ .Values.name }}
+        ports:
+        - containerPort: 27015
+          protocol: UDP 
+        envFrom:
+        - secretRef:
+            name: secret
+        volumeMounts:
+          - name: {{ .Values.pvc.name }}
+            mountPath: /home/steam/cs2-ds
+          - name: entrypoint-sh
+            mountPath: /home/steam/entrypoint.sh
+            subPath: entrypoint.sh
+          - name: server-cfg
+            mountPath: /home/steam/cs2-ds/game/csgo/cfg/server.cfg
+            subPath: server.cfg
+      volumes:
+        - name: {{ .Values.pvc.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}
+        - name: entrypoint-sh
+          configMap:
+            name: {{ .Values.configMap.name }}
+            defaultMode: 0744            
+            items:
+            - key: entrypoint.sh
+              path: entrypoint.sh
+        - name: server-cfg
+          configMap:
+            name: {{ .Values.configMap.name }}
+            defaultMode: 0744
+            items:
+            - key: server.cfg
+              path: server.cfg              
+
+
