@@ -16,7 +16,7 @@ spec:
     spec:   
       initContainers:
       - name: install-update
-        image: steamcmd/steamcmd:latest
+        image: {{ .Values.image }}
         command: [ "bash", "-c", "/usr/bin/steamcmd +force_install_dir /home/steam/cs2-ds +login anonymous +app_update 730 +quit" ]
         envFrom:
         - secretRef:
@@ -50,7 +50,7 @@ spec:
         - name: entrypoint-sh
           configMap:
             name: {{ .Values.configMap.name }}
-            defaultMode: 0744            
+            defaultMode: 0744
             items:
             - key: entrypoint.sh
               path: entrypoint.sh
